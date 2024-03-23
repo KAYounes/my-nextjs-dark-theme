@@ -1,0 +1,6 @@
+html[data-theme='light'] {
+  background-color: lightgreen;
+}
+html[data-theme='dark'] {
+  background-color: darkolivegreen;
+}
