@@ -18,7 +18,7 @@ export default function ThemeProvider({ children }) {
     /*
       If client side, load theme from local storage if exists, else set theme to system.
     */
-    console.log(' useState 1');
+    console.log(' useState ');
     if (isServer()) return undefined;
 
     let localTheme = localStorage.getItem('theme');
@@ -28,6 +28,7 @@ export default function ThemeProvider({ children }) {
 
   const systemTheme = React.useRef();
 
+  console.log('> ', theme);
   React.useEffect(function () {
     console.log(' Listen to system preference changes ');
     // Listen to system preference changes
@@ -38,11 +39,19 @@ export default function ThemeProvider({ children }) {
 
     function handleQueryChange(event) {
       console.log(' handleQueryChange ');
+      let _theme = readLocalStorageTheme();
+      console.log(_theme);
       // if (theme === 'system') {
-      if (event.media === '(prefers-color-scheme: dark)')
+      if (event.media === '(prefers-color-scheme: dark)') {
+        console.log(event.matches);
         if (event.matches) systemTheme.current = THEME_VALUE_DARK;
         else systemTheme.current = THEME_VALUE_LIGHT;
-      applyTheme();
+      }
+      console.log(_theme);
+      if (_theme === 'system') {
+        console.log('A');
+        applyTheme(systemTheme.current);
+      }
       // }
     }
 
@@ -52,43 +61,42 @@ export default function ThemeProvider({ children }) {
     return () => prefersDarkQuery.removeEventListener('change', handleQueryChange);
   }, []);
 
-  React.useEffect(function () {
-    console.log(' handle local storage changes ');
-    // handle local storage changes
+  // React.useEffect(function () {
+  //   console.log(' handle local storage changes ');
+  //   // handle local storage changes
 
-    if (isServer()) return;
+  //   if (isServer()) return;
 
-    function handleLocalChange(event) {
-      console.log(' handleLocalChange ');
-      const { key, newValue } = event;
+  //   function handleLocalChange(event) {
+  //     console.log(' handleLocalChange ');
+  //     const { key, newValue } = event;
 
-      if (event.key === 'theme')
-        if ([THEME_VALUE_LIGHT, THEME_VALUE_DARK, 'system'].includes(event.newValue)) {
-          console.log(`setTheme to ${event.newValue === 'system' ? systemTheme : event.newValue}`);
-          setTheme(event.newValue === 'system' ? systemTheme : event.newValue);
-        }
-    }
+  //     if (event.key === 'theme')
+  //       if ([THEME_VALUE_LIGHT, THEME_VALUE_DARK, 'system'].includes(event.newValue)) {
+  //         console.log(`setTheme to ${event.newValue === 'system' ? systemTheme : event.newValue}`);
+  //         setTheme(event.newValue === 'system' ? systemTheme : event.newValue);
+  //       }
+  //   }
 
-    window.addEventListener('storage', handleLocalChange);
-    return () => window.removeEventListener('storage', handleLocalChange);
-  }, []);
+  //   window.addEventListener('storage', handleLocalChange);
+  //   return () => window.removeEventListener('storage', handleLocalChange);
+  // }, []);
 
-  React.useEffect(
-    function () {
-      console.log(' listen to theme state ');
-      // listen to theme state
-      if (isServer()) return;
-      applyTheme();
-    },
-    [theme],
-  );
+  // React.useEffect(
+  //   function () {
+  //     console.log(' listen to theme state ');
+  //     // listen to theme state
+  //     if (isServer()) return;
+  //     applyTheme();
+  //   },
+  //   [theme],
+  // );
 
-  function applyTheme(log) {
-    console.trace();
-    console.log(' applyTheme ');
-    let actualTheme = theme;
-    if (theme === 'system') actualTheme = systemTheme.current;
-    document.documentElement.setAttribute('data-theme', actualTheme);
+  function applyTheme(new_theme) {
+    // let actualTheme = new_theme;
+    // if (new_theme === 'system') actualTheme = systemTheme.current;
+    console.log(' applyTheme ', new_theme);
+    document.documentElement.setAttribute('data-theme', new_theme);
   }
 
   const themeScript = `
@@ -103,13 +111,6 @@ export default function ThemeProvider({ children }) {
   
     document.documentElement.setAttribute("data-theme", _theme);
     `;
-
-  // const themeScriptGolfed = themeScript
-  //     .replaceAll(/\n/g, "")
-  //     .replaceAll(/(?<!let)\s/g, "")
-  //     .replaceAll(/localTheme/g, "l")
-  //     .replaceAll(/systemTheme/g, "s")
-  //     .replaceAll(/_theme/g, "t");
 
   new RegExp(/(?<!let)s/);
   const themeScriptGolfed = stringMapper(themeScript, {
@@ -139,17 +140,23 @@ export default function ThemeProvider({ children }) {
 
   function setThemeLight() {
     console.log(' setThemeLight ');
-    updateTheme(THEME_VALUE_LIGHT);
+    setTheme(THEME_VALUE_LIGHT);
+    updateLocalStorage(THEME_VALUE_LIGHT);
+    applyTheme(THEME_VALUE_LIGHT);
   }
 
   function setThemeDark() {
     console.log(' setThemeDark ');
-    updateTheme(THEME_VALUE_DARK);
+    setTheme(THEME_VALUE_DARK);
+    updateLocalStorage(THEME_VALUE_DARK);
+    applyTheme(THEME_VALUE_DARK);
   }
 
   function setThemeAuto() {
     console.log(' setThemeAuto ');
-    updateTheme('system');
+    setTheme('system');
+    updateLocalStorage('system');
+    applyTheme(systemTheme.current);
   }
 
   function updateLocalStorage(theme) {
@@ -162,9 +169,7 @@ export default function ThemeProvider({ children }) {
     }
   }
 
-  function updateTheme(theme_value) {
-    console.log(' updateTheme ');
-    setTheme(theme_value);
-    updateLocalStorage(theme_value);
+  function readLocalStorageTheme() {
+    return localStorage.getItem('theme');
   }
 }
